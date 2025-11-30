@@ -2,86 +2,82 @@ package com.curiousity.tech.services;
 
 import com.curiousity.tech.domain.Product;
 import com.curiousity.tech.factory.ProductFactory;
+import com.curiousity.tech.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ProductService implements IProductService {
-    private List<Product> products;
 
-    public ProductService() {
-        this.products = new java.util.ArrayList<>();
+    private final ProductRepository productRepository;
+
+    @Autowired
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
     }
 
     @Override
-    public Product createProduct(String name, String description, String price, String stockQuantity, String imageUrl) {
-        Product product = ProductFactory.create(name, description, price, stockQuantity, imageUrl);
-        products.add(product);
-        return product;
+    public Product createProduct(String name, String description, double price, int stock, String category) {
+        Product product = ProductFactory.create(name, description, price, stock, category);
+        return productRepository.save(product);
     }
 
     @Override
-    public Optional<Product> getProductById(String id) {
-        return products.stream().filter(p -> p.getId().equals(id)).findFirst();
+    public Optional<Product> getProductById(Long id) {
+        return productRepository.findById(id);
     }
 
     @Override
     public Optional<Product> getProductByName(String name) {
-        return products.stream().filter(p -> p.getName().equals(name)).findFirst();
+        return productRepository.findByName(name);
     }
 
     @Override
     public List<Product> getAllProducts() {
-        return new java.util.ArrayList<>(products);
+        return productRepository.findAll();
     }
 
     @Override
-    public List<Product> getProductsByCategory(String categoryId) {
-        return products.stream().filter(p -> p.getId().contains(categoryId)).toList();
+    public List<Product> getProductsByCategory(String category) {
+        return productRepository.findByCategory(category);
     }
 
     @Override
     public Product updateProduct(Product product) {
-        Optional<Product> existing = getProductById(product.getId());
-        if (existing.isPresent()) {
-            products.remove(existing.get());
-            products.add(product);
+        return productRepository.save(product);
+    }
+
+    @Override
+    public void deleteProduct(Long id) {
+        productRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean isProductInStock(Long id) {
+        return productRepository.findById(id)
+                .map(product -> product.getStock() > 0)
+                .orElse(false);
+    }
+
+    @Override
+    public Product decreaseStock(Long id, int quantity) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        if (product.getStock() < quantity) {
+            throw new IllegalStateException("Not enough stock");
         }
-        return product;
+        product.setStock(product.getStock() - quantity);
+        return productRepository.save(product);
     }
 
     @Override
-    public boolean deleteProduct(String id) {
-        return products.removeIf(p -> p.getId().equals(id));
-    }
-
-    @Override
-    public boolean isProductInStock(String productId) {
-        Optional<Product> product = getProductById(productId);
-        return product.isPresent() && Integer.parseInt(product.get().getStockQuantity()) > 0;
-    }
-
-    @Override
-    public Product decreaseStock(String productId, int quantity) {
-        Optional<Product> product = getProductById(productId);
-        if (product.isPresent()) {
-            int currentStock = Integer.parseInt(product.get().getStockQuantity());
-            int newStock = currentStock - quantity;
-            return updateProduct(product.get());
-        }
-        return null;
-    }
-
-    @Override
-    public Product increaseStock(String productId, int quantity) {
-        Optional<Product> product = getProductById(productId);
-        if (product.isPresent()) {
-            int currentStock = Integer.parseInt(product.get().getStockQuantity());
-            int newStock = currentStock + quantity;
-            return updateProduct(product.get());
-        }
-        return null;
+    public Product increaseStock(Long id, int quantity) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        product.setStock(product.getStock() + quantity);
+        return productRepository.save(product);
     }
 }
-

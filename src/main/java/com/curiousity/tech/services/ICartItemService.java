@@ -1,16 +1,6 @@
 package com.curiousity.tech.services;
 
-import com.curiousity.tech.domain.CartItem;
-import java.util.List;
-import java.util.Optional;
-
+// This interface is no longer needed as CartService handles all CartItem logic.
+// Keeping it empty for now to avoid compilation errors in other files that might import it.
 public interface ICartItemService {
-    CartItem createCartItem(int quantity);
-    Optional<CartItem> getCartItemById(String id);
-    List<CartItem> getAllCartItems();
-    List<CartItem> getCartItemsByCartId(String cartId);
-    CartItem updateCartItem(CartItem cartItem);
-    CartItem updateQuantity(String cartItemId, int newQuantity);
-    boolean deleteCartItem(String id);
 }
-

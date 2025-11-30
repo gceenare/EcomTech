@@ -5,15 +5,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IProductService {
-    Product createProduct(String name, String description, String price, String stockQuantity, String imageUrl);
-    Optional<Product> getProductById(String id);
+    Product createProduct(String name, String description, double price, int stock, String category);
+    Optional<Product> getProductById(Long id);
     Optional<Product> getProductByName(String name);
     List<Product> getAllProducts();
-    List<Product> getProductsByCategory(String categoryId);
+    List<Product> getProductsByCategory(String category);
     Product updateProduct(Product product);
-    boolean deleteProduct(String id);
-    boolean isProductInStock(String productId);
-    Product decreaseStock(String productId, int quantity);
-    Product increaseStock(String productId, int quantity);
+    void deleteProduct(Long id);
+    boolean isProductInStock(Long id);
+    Product decreaseStock(Long id, int quantity);
+    Product increaseStock(Long id, int quantity);
 }
-

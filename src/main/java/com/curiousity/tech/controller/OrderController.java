@@ -1,52 +1,29 @@
 package com.curiousity.tech.controller;
 
-import com.curiousity.tech.services.OrderService;
 import com.curiousity.tech.domain.Order;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.Optional;
+import com.curiousity.tech.services.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Component
+@RestController
+@RequestMapping("/api/orders")
 public class OrderController {
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
 
+    public OrderController(OrderService orderService) { this.orderService = orderService; }
 
-    public Order createOrder(String date, String totalAmount, String status) {
-        return orderService.createOrder(date, totalAmount, status);
-    }
-
-    public Optional<Order> getOrderById(String id) {
-        return orderService.getOrderById(id);
-    }
-
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
-    }
-
-    public List<Order> getOrdersByUserId(String userId) {
-        return orderService.getOrdersByUserId(userId);
-    }
-
-    public List<Order> getOrdersByStatus(String status) {
-        return orderService.getOrdersByStatus(status);
-    }
-
-    public Order updateOrder(Order order) {
-        return orderService.updateOrder(order);
-    }
-
-    public Order updateOrderStatus(String orderId, String newStatus) {
-        return orderService.updateOrderStatus(orderId, newStatus);
-    }
-
-    public boolean deleteOrder(String id) {
-        return orderService.deleteOrder(id);
-    }
-
-    public double calculateOrderTotal(String orderId) {
-        return orderService.calculateOrderTotal(orderId);
+    @PostMapping("/checkout")
+    public ResponseEntity<?> checkout(HttpServletRequest req) {
+        String username = (String) req.getAttribute("username");
+        if (username == null) return ResponseEntity.status(401).body("Unauthenticated");
+        try {
+            Order order = orderService.checkout(username);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
-

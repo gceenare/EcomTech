@@ -1,85 +1,54 @@
 package com.curiousity.tech.services;
 
-import com.curiousity.tech.domain.Order;
-import com.curiousity.tech.factory.OrderFactory;
+import com.curiousity.tech.domain.*;
+import com.curiousity.tech.repository.*;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-public class OrderService implements IOrderService {
-    private List<Order> orders;
+public class OrderService {
+    private final CartItemRepository cartRepo;
+    private final OrderRepository orderRepo;
+    private final ProductRepository productRepo;
+    private final UserRepository userRepo;
 
-    public OrderService() {
-        this.orders = new java.util.ArrayList<>();
+    public OrderService(CartItemRepository cartRepo, OrderRepository orderRepo, ProductRepository productRepo, UserRepository userRepo) {
+        this.cartRepo = cartRepo; this.orderRepo = orderRepo; this.productRepo = productRepo; this.userRepo = userRepo;
     }
 
-    @Override
-    public Order createOrder(String date, String totalAmount, String status) {
-        Order order = OrderFactory.create(date, totalAmount, status);
-        orders.add(order);
-        return order;
-    }
+    public Order checkout(String username) {
+        User u = userRepo.findByUsername(username);
+        if (u == null) throw new RuntimeException("User not found");
+        List<CartItem> items = cartRepo.findByUserUsername(username);
+        if (items.isEmpty()) throw new RuntimeException("Cart empty");
 
-    @Override
-    public Optional<Order> getOrderById(String id) {
-        return orders.stream().filter(o -> o.getId().equals(id)).findFirst();
-    }
-
-    @Override
-    public List<Order> getAllOrders() {
-        return new java.util.ArrayList<>(orders);
-    }
-
-    @Override
-    public List<Order> getOrdersByUserId(String userId) {
-        return orders.stream().filter(o -> o.getId().contains(userId)).toList();
-    }
-
-    @Override
-    public List<Order> getOrdersByStatus(String status) {
-        return orders.stream().filter(o -> o.getStatus().equals(status)).toList();
-    }
-
-    @Override
-    public Order updateOrder(Order order) {
-        Optional<Order> existing = getOrderById(order.getId());
-        if (existing.isPresent()) {
-            orders.remove(existing.get());
-            orders.add(order);
+        Order order = new Order();
+        order.setUser(u);
+        order.setCreatedAt(LocalDateTime.now());
+        List<OrderItem> orderItems = new ArrayList<>();
+        double total = 0.0;
+        for (CartItem ci : items) {
+            Product p = productRepo.findById(ci.getProductId()).orElseThrow();
+            if (p.getStock() < ci.getQuantity()) throw new RuntimeException("Insufficient stock for " + p.getName());
+            p.setStock(p.getStock() - ci.getQuantity());
+            productRepo.save(p);
+            OrderItem oi = new OrderItem();
+            oi.setProductId(p.getId());
+            oi.setProductName(p.getName());
+            oi.setPrice(p.getPrice());
+            oi.setQuantity(ci.getQuantity());
+            oi.setOrder(order);
+            orderItems.add(oi);
+            total += p.getPrice() * ci.getQuantity();
         }
-        return order;
-    }
-
-    @Override
-    public Order updateOrderStatus(String orderId, String newStatus) {
-        Optional<Order> order = getOrderById(orderId);
-        if (order.isPresent()) {
-            Order updatedOrder = new Order.Builder()
-                    .copy(order.get())
-                    .setStatus(newStatus)
-                    .build();
-            return updateOrder(updatedOrder);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean deleteOrder(String id) {
-        return orders.removeIf(o -> o.getId().equals(id));
-    }
-
-    @Override
-    public double calculateOrderTotal(String orderId) {
-        Optional<Order> order = getOrderById(orderId);
-        if (order.isPresent()) {
-            try {
-                return Double.parseDouble(order.get().getTotalAmount());
-            } catch (NumberFormatException e) {
-                return 0.0;
-            }
-        }
-        return 0.0;
+        order.setItems(orderItems);
+        order.setTotal(total);
+        Order saved = orderRepo.save(order);
+        // clear cart
+        cartRepo.deleteAll(items);
+        return saved;
     }
 }
-

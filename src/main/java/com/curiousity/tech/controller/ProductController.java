@@ -1,56 +1,94 @@
 package com.curiousity.tech.controller;
 
-import com.curiousity.tech.services.ProductService;
 import com.curiousity.tech.domain.Product;
+import com.curiousity.tech.services.IProductService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
-import java.util.Optional;
 
-@Component
+@RestController
+@RequestMapping("/products")
 public class ProductController {
+
+    private final IProductService productService;
+
     @Autowired
-    private ProductService productService;
-
-
-    public Product createProduct(String name, String description, String price, String stockQuantity, String imageUrl) {
-        return productService.createProduct(name, description, price, stockQuantity, imageUrl);
+    public ProductController(IProductService productService) {
+        this.productService = productService;
     }
 
-    public Optional<Product> getProductById(String id) {
-        return productService.getProductById(id);
+    @PostMapping
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+        Product newProduct = productService.createProduct(
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStock(),
+                product.getCategory()
+        );
+        return new ResponseEntity<>(newProduct, HttpStatus.CREATED);
     }
 
-    public Optional<Product> getProductByName(String name) {
-        return productService.getProductByName(name);
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        return productService.getProductById(id)
+                .map(product -> new ResponseEntity<>(product, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    @GetMapping
+    public ResponseEntity<List<Product>> getAllProducts() {
+        List<Product> products = productService.getAllProducts();
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
-    public List<Product> getProductsByCategory(String categoryId) {
-        return productService.getProductsByCategory(categoryId);
+    @GetMapping("/category/{category}")
+    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String category) {
+        List<Product> products = productService.getProductsByCategory(category);
+        return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
-    public Product updateProduct(Product product) {
-        return productService.updateProduct(product);
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
+        return productService.getProductById(id)
+                .map(product -> {
+                    product.setName(productDetails.getName());
+                    product.setDescription(productDetails.getDescription());
+                    product.setPrice(productDetails.getPrice());
+                    product.setStock(productDetails.getStock());
+                    product.setCategory(productDetails.getCategory());
+                    Product updatedProduct = productService.updateProduct(product);
+                    return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+                })
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    public boolean deleteProduct(String id) {
-        return productService.deleteProduct(id);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    public boolean isProductInStock(String productId) {
-        return productService.isProductInStock(productId);
+    @PostMapping("/{id}/decrease-stock")
+    public ResponseEntity<Product> decreaseStock(@PathVariable Long id, @RequestParam int quantity) {
+        try {
+            Product updatedProduct = productService.decreaseStock(id, quantity);
+            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
-    public Product decreaseStock(String productId, int quantity) {
-        return productService.decreaseStock(productId, quantity);
-    }
-
-    public Product increaseStock(String productId, int quantity) {
-        return productService.increaseStock(productId, quantity);
+    @PostMapping("/{id}/increase-stock")
+    public ResponseEntity<Product> increaseStock(@PathVariable Long id, @RequestParam int quantity) {
+        try {
+            Product updatedProduct = productService.increaseStock(id, quantity);
+            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 }
-

@@ -5,12 +5,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IOrderItemService {
-    OrderItem createOrderItem(String orderId, String quantity, String price);
-    Optional<OrderItem> getOrderItemById(String id);
+    OrderItem createOrderItem(Long orderId, Long productId, String productName, double price, int quantity);
+    Optional<OrderItem> getOrderItemById(Long id);
     List<OrderItem> getAllOrderItems();
-    List<OrderItem> getOrderItemsByOrderId(String orderId);
-    OrderItem updateOrderItem(OrderItem orderItem);
-    boolean deleteOrderItem(String id);
-    double calculateOrderItemTotal(String orderItemId);
+    List<OrderItem> getOrderItemsByOrderId(Long orderId);
+    OrderItem save(OrderItem orderItem);
+    void deleteOrderItem(Long id);
 }
-

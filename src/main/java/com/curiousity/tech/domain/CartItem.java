@@ -1,51 +1,26 @@
 package com.curiousity.tech.domain;
 
-public class CartItem {
+import jakarta.persistence.*;
 
-    private String id;
+@Entity
+public class CartItem {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    private User user;
+
+    private Long productId;
     private int quantity;
 
-    protected CartItem() {
-    }
-    public CartItem(Builder builder) {
-        this.id = builder.id;
-        this.quantity = builder.quantity;
-    }
-    public String getId() {
-        return id;
-    }
-    public int getQuantity() {
-        return quantity;
-    }
-    @Override
-    public String toString() {
-        return "CartItem{" +
-                "id='" + id + '\'' +
-                ", quantity=" + quantity +
-                '}';}
-    public static class Builder {
-        private String id;
-        private int quantity;
+    // getters and setters
 
-        public Builder setId(String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder setQuantity(int quantity) {
-            this.quantity = quantity;
-            return this;
-        }
-
-        public CartItem build() {
-            return new CartItem(this);
-        }
-
-        public Builder copy(CartItem cartItem) {
-            this.id = cartItem.id;
-            this.quantity = cartItem.quantity;
-            return this;
-        }
-    }
-
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
 }
